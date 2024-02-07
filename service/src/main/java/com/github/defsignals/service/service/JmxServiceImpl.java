@@ -42,7 +42,6 @@ public class JmxServiceImpl implements JmxService {
         return url;
     }
 
-    @Override
     public <T> T getMxBean(Optional<String> host, Optional<Integer> port, Class<T> MXBeanClass) {
         JMXServiceURL serviceUrl = getUrl(host, port);
         try {
