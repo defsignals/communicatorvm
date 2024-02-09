@@ -7,42 +7,36 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
+import javax.management.MalformedObjectNameException;
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/jmx")
 public class JmxController {
-
     private final JmxService jmxService;
 
     public JmxController(JmxService jmxService) {
         this.jmxService = jmxService;
     }
 
-
     @GetMapping("/memory")
-    public Mono<Map<String, Long>> getMemoryUsage(@RequestParam Optional<String> host,
-                                                  @RequestParam Optional<Integer> port) {
-        Map<String, Long> res = new HashMap<>();
-        MemoryMXBean memoryMxBean = jmxService.getMxBean(host, port, MemoryMXBean.class);
+    public Mono<MemoryUsage> getMemoryUsage(@RequestParam String host,
+                                            @RequestParam Integer port) throws MalformedObjectNameException, IOException {
+        final var memoryMxBean = jmxService.getMxBean(host, port,
+                MemoryMXBean.class, ManagementFactory.MEMORY_MXBEAN_NAME);
+
         final var heapMemoryUsage = memoryMxBean.getHeapMemoryUsage();
         final var nonHeapMemoryUsage = memoryMxBean.getNonHeapMemoryUsage();
 
-        res.put("Max heap memory", heapMemoryUsage.getMax());
-        res.put("Used heap memory", heapMemoryUsage.getUsed());
-        res.put("Max non heap memory", nonHeapMemoryUsage.getMax());
-        res.put("Used non heap memory", nonHeapMemoryUsage.getUsed());
-
-        return Mono.just(res);
+        return Mono.just(new MemoryUsage(heapMemoryUsage.getMax(),
+                heapMemoryUsage.getUsed(),
+                nonHeapMemoryUsage.getMax(),
+                nonHeapMemoryUsage.getUsed()));
     }
 
-
-
-
-
-
+    public record MemoryUsage(Long maxHeap, Long usedHeap, Long maxNonHeap, Long usedNonHeap) {
+    }
 }
 
